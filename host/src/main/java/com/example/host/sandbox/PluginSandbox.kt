@@ -77,6 +77,24 @@ class PluginContext(
     override fun getSharedPreferences(name: String, mode: Int) =
         super.getSharedPreferences("plugin_${pluginPackageName}_$name", mode)
 
+    override fun startActivity(intent: android.content.Intent) {
+        val target = intent.component?.className
+            ?: throw IllegalArgumentException("Plugin activities must use an explicit component")
+        require(target.startsWith("$pluginPackageName.")) {
+            "Plugin activity target is outside the declared plugin package"
+        }
+
+        val routed = android.content.Intent().apply {
+            action = intent.action
+            data = intent.data
+            intent.categories?.forEach { addCategory(it) }
+            flags = intent.flags or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            component = android.content.ComponentName(this@PluginContext, ProxyActivity::class.java)
+            putExtra(ProxyActivity.EXTRA_TARGET_GUEST_ACTIVITY, target)
+        }
+        super.startActivity(routed)
+    }
+
     override fun getSystemService(name: String): Any? {
         if (Context.LAYOUT_INFLATER_SERVICE == name) {
             val baseInflater = android.view.LayoutInflater.from(baseContext)
