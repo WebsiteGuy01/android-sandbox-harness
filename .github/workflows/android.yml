@@ -1,0 +1,78 @@
+name: Android Build
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_NDK_VERSION: "26.3.11579264"
+  CMAKE_VERSION: "3.22.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK, NDK, and CMake
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-29" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${CMAKE_VERSION}"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Compile test plugin
+        run: ./gradlew --no-daemon :test-plugin:assembleDebug
+
+      - name: Stage test plugin APK into host assets
+        run: |
+          mkdir -p host/src/main/assets
+          cp test-plugin/build/outputs/apk/debug/test-plugin-debug.apk \
+             host/src/main/assets/test_plugin.apk
+
+      - name: Build host APK
+        run: ./gradlew --no-daemon :host:assembleDebug
+
+      - name: Prepare downloadable app-debug.apk
+        run: cp host/build/outputs/apk/debug/host-debug.apk host/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload host APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: host/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test plugin APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-plugin-debug
+          path: test-plugin/build/outputs/apk/debug/test-plugin-debug.apk
+          if-no-files-found: error
+          retention-days: 14

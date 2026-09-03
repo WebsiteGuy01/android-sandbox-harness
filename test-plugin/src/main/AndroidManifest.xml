@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:label="Sandbox Test Plugin"
+        android:supportsRtl="true">
+        <meta-data
+            android:name="com.example.testplugin.ENTRY_POINT"
+            android:value="com.example.testplugin.PluginEntryPoint" />
+    </application>
+</manifest>
