@@ -78,6 +78,10 @@ class PluginContext(
         super.getSharedPreferences("plugin_${pluginPackageName}_$name", mode)
 
     override fun getSystemService(name: String): Any? {
+        if (Context.LAYOUT_INFLATER_SERVICE == name) {
+            val baseInflater = android.view.LayoutInflater.from(baseContext)
+            return baseInflater.cloneInContext(this)
+        }
         // Deny-by-default prevents accidental access to sensitive host services.
         return if (name in allowedServices) super.getSystemService(name) else null
     }
