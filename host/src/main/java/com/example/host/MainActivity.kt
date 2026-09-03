@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.sandbox.core.PluginContext
 import com.example.sandbox.core.PluginUiComponent
+import com.example.sandbox.core.PluginVerifier
 import com.example.sandbox.core.ProductionGuestDiagnostic
 import com.example.sandbox.core.SandboxActivityLifecycle
 import com.example.sandbox.core.SandboxPlugin
@@ -31,6 +32,14 @@ class MainActivity : Activity() {
                     entryPointClassName = "com.example.testplugin.PluginEntryPoint"
                 ).inspectProductionGuest()
                 val artifact = stagePluginAsset()
+                val verification = PluginVerifier.verify(
+                    applicationContext,
+                    artifact.absolutePath,
+                    setOf(BuildConfig.PLUGIN_SIGNATURE_SHA256)
+                )
+                check(verification.verified) {
+                    "Plugin signature verification failed: ${verification.error}"
+                }
                 val context = PluginContext(
                     host = applicationContext,
                     pluginArtifact = artifact,

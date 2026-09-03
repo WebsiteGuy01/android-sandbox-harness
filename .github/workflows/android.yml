@@ -67,8 +67,16 @@ jobs:
           cp test-plugin/build/outputs/apk/debug/test-plugin-debug.apk \
              host/src/main/assets/test_plugin.apk
 
+      - name: Derive trusted plugin signing fingerprint
+        run: |
+          fingerprint="$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs \
+            test-plugin/build/outputs/apk/debug/test-plugin-debug.apk \
+            | awk -F': ' '/SHA-256 digest/{print $2; exit}')"
+          test -n "$fingerprint"
+          echo "SANDBOX_PLUGIN_FINGERPRINT=$fingerprint" >> "$GITHUB_ENV"
+
       - name: Build sandbox-core and host APK
-        run: ./gradlew --no-daemon :sandbox-core:assembleDebug :host:assembleDebug
+        run: ./gradlew --no-daemon :sandbox-core:testDebugUnitTest :sandbox-core:assembleDebug :host:assembleDebug -PsandboxPluginFingerprint="$SANDBOX_PLUGIN_FINGERPRINT"
 
       - name: Prepare downloadable app-debug.apk
         run: cp host/build/outputs/apk/debug/host-debug.apk host/build/outputs/apk/debug/app-debug.apk

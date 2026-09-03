@@ -153,6 +153,8 @@ data class SandboxDiagnosticReport(
     val artifactStaged: Boolean,
     val pluginClassLoaded: Boolean,
     val classLoaderIsolated: Boolean,
+    val signatureVerified: Boolean,
+    val signatureFingerprint: String?,
     val windowMetrics: SandboxWindowMetrics?,
     val validFd: Int,
     val validPathAccepted: Boolean,
@@ -171,7 +173,8 @@ class SandboxTestRunner(
     private val hostContext: android.content.Context,
     private val assetName: String,
     private val pluginPackageName: String,
-    private val entryPointClassName: String
+    private val entryPointClassName: String,
+    private val allowedPluginFingerprints: Set<String> = emptySet()
 ) {
     /**
      * Parses the staged APK manifest only. This method never loads guest
@@ -218,11 +221,23 @@ class SandboxTestRunner(
         var staged = false
         var loaded = false
         var isolated = false
+        var signatureVerified = false
+        var signatureFingerprint: String? = null
         var metrics: SandboxWindowMetrics? = null
 
         return try {
             val stagedFile = stageAsset()
             staged = true
+            val verification = PluginVerifier.verify(
+                hostContext,
+                stagedFile.absolutePath,
+                allowedPluginFingerprints
+            )
+            signatureVerified = verification.verified
+            signatureFingerprint = verification.fingerprints.firstOrNull()
+            check(verification.verified) {
+                "Plugin signature verification failed: ${verification.error}"
+            }
             pluginContext = PluginContext(hostContext, stagedFile, pluginPackageName)
 
             val entryPoint = pluginContext.loadPluginClass(entryPointClassName)
@@ -264,6 +279,8 @@ class SandboxTestRunner(
                 artifactStaged = staged,
                 pluginClassLoaded = loaded,
                 classLoaderIsolated = isolated,
+                signatureVerified = signatureVerified,
+                signatureFingerprint = signatureFingerprint,
                 windowMetrics = metrics,
                 validFd = validFd,
                 validPathAccepted = validFd >= 0,
@@ -277,6 +294,8 @@ class SandboxTestRunner(
                 artifactStaged = staged,
                 pluginClassLoaded = loaded,
                 classLoaderIsolated = isolated,
+                signatureVerified = signatureVerified,
+                signatureFingerprint = signatureFingerprint,
                 windowMetrics = metrics,
                 validFd = validFd,
                 validPathAccepted = validFd >= 0,

@@ -3,6 +3,8 @@ plugins {
     kotlin("android")
 }
 
+val pluginFingerprint = project.findProperty("sandboxPluginFingerprint")?.toString() ?: ""
+
 android {
     namespace = "com.example.host"
     compileSdk = 35
@@ -13,6 +15,7 @@ android {
         targetSdk = 29
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "PLUGIN_SIGNATURE_SHA256", "\"$pluginFingerprint\"")
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
