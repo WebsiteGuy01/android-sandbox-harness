@@ -112,18 +112,37 @@ class MainActivity : Activity() {
 private class ReflectivePluginComponent(
     private val target: Any
 ) : PluginUiComponent {
-    override fun onCreate(state: Bundle?) = invokeOptional("onCreate", state)
-    override fun onStart() = invokeOptional("onStart")
-    override fun onResume() = invokeOptional("onResume")
-    override fun onPause() = invokeOptional("onPause")
-    override fun onStop() = invokeOptional("onStop")
-    override fun onDestroy() = invokeOptional("onDestroy")
-    override fun onSaveInstanceState(outState: Bundle) = invokeOptional(
-        "onSaveInstanceState", outState
-    )
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) = invokeOptional(
-        "onRestoreInstanceState", savedInstanceState
-    )
+    override fun onCreate(state: Bundle?) {
+        invokeOptional("onCreate", state)
+    }
+
+    override fun onStart() {
+        invokeOptional("onStart")
+    }
+
+    override fun onResume() {
+        invokeOptional("onResume")
+    }
+
+    override fun onPause() {
+        invokeOptional("onPause")
+    }
+
+    override fun onStop() {
+        invokeOptional("onStop")
+    }
+
+    override fun onDestroy() {
+        invokeOptional("onDestroy")
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        invokeOptional("onSaveInstanceState", outState)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        invokeOptional("onRestoreInstanceState", savedInstanceState)
+    }
 
     override fun createView(hostActivity: Activity): View? {
         return invokeOptional("createView", hostActivity) as? View
