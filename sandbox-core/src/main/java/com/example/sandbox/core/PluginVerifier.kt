@@ -40,15 +40,27 @@ object PluginVerifier {
                 )
             val fingerprints = signatures(packageInfo)
                 .mapTo(linkedSetOf(), ::sha256Fingerprint)
-            val normalizedAllowlist = allowedFingerprints.mapTo(hashSetOf(), ::normalize)
-            val verified = fingerprints.isNotEmpty() &&
-                normalizedAllowlist.isNotEmpty() &&
-                fingerprints.any { it in normalizedAllowlist }
+            val normalizedExpected = allowedFingerprints
+                .map(::normalizeFingerprint)
+                .filter(String::isNotEmpty)
+                .toSet()
+            val normalizedActual = fingerprints
+                .map(::normalizeFingerprint)
+                .filter(String::isNotEmpty)
+                .toSet()
+            val verified = normalizedActual.isNotEmpty() &&
+                normalizedExpected.isNotEmpty() &&
+                normalizedActual.any { it in normalizedExpected }
             PluginVerificationResult(
                 packageName = packageInfo.packageName,
                 fingerprints = fingerprints,
                 verified = verified,
-                error = if (verified) null else "APK signing certificate is not allowlisted"
+                error = if (verified) null else buildString {
+                    append("Signature mismatch.\nExpected: ")
+                    append(normalizedExpected.joinToString(", ").ifEmpty { "<none>" })
+                    append("\nGot: ")
+                    append(normalizedActual.joinToString(", ").ifEmpty { "<none>" })
+                }
             )
         } catch (t: Throwable) {
             PluginVerificationResult(
@@ -65,12 +77,14 @@ object PluginVerifier {
         fingerprints: Collection<String>,
         allowedFingerprints: Collection<String>
     ): Boolean {
-        val allowlist = allowedFingerprints.mapTo(hashSetOf(), ::normalize)
-        return allowlist.isNotEmpty() && fingerprints.any { normalize(it) in allowlist }
+        val allowlist = allowedFingerprints.mapTo(hashSetOf(), ::normalizeFingerprint)
+        return allowlist.isNotEmpty() &&
+            fingerprints.any { normalizeFingerprint(it) in allowlist }
     }
 
-    internal fun normalize(value: String): String =
-        value.replace(":", "").replace(" ", "").uppercase()
+    private fun normalizeFingerprint(fingerprint: String): String {
+        return fingerprint.replace(":", "").replace(" ", "").uppercase()
+    }
 
     internal fun sha256Fingerprint(signature: Signature): String {
         val digest = MessageDigest.getInstance(SHA256).digest(signature.toByteArray())

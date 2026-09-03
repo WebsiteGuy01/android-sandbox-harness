@@ -37,8 +37,10 @@ class MainActivity : Activity() {
                     artifact.absolutePath,
                     setOf(BuildConfig.PLUGIN_SIGNATURE_SHA256)
                 )
-                check(verification.verified) {
-                    "Plugin signature verification failed: ${verification.error}"
+                if (!verification.verified) {
+                    throw IllegalStateException(
+                        verification.error ?: "Plugin signature verification failed"
+                    )
                 }
                 val context = PluginContext(
                     host = applicationContext,
@@ -85,7 +87,11 @@ class MainActivity : Activity() {
             } catch (t: Throwable) {
                 runOnUiThread {
                     setContentView(TextView(this).apply {
-                        text = "Plugin initialization failed: ${t.stackTraceToString()}"
+                        text = "Plugin initialization failed:\n\n${t.stackTraceToString()}"
+                        setTextColor(android.graphics.Color.RED)
+                        setBackgroundColor(android.graphics.Color.BLACK)
+                        setPadding(48, 48, 48, 48)
+                        textSize = 14f
                     })
                 }
             }
