@@ -1,4 +1,4 @@
-package com.example.host.sandbox
+package com.example.sandbox.core
 
 import android.content.Context
 import android.graphics.Rect

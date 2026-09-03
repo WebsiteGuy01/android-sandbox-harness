@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "android-sandbox-harness"
-include(":host", ":test-plugin")
+include(":sandbox-core", ":host", ":test-plugin")

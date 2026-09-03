@@ -1,15 +1,17 @@
 package com.example.host
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.example.host.sandbox.PluginContext
-import com.example.host.sandbox.PluginUiComponent
-import com.example.host.sandbox.ProductionGuestDiagnostic
-import com.example.host.sandbox.SandboxTestRunner
-import com.example.host.sandbox.SandboxActivityLifecycle
+import com.example.sandbox.core.PluginContext
+import com.example.sandbox.core.PluginUiComponent
+import com.example.sandbox.core.ProductionGuestDiagnostic
+import com.example.sandbox.core.SandboxActivityLifecycle
+import com.example.sandbox.core.SandboxPlugin
+import com.example.sandbox.core.SandboxTestRunner
 import java.io.File
 
 class MainActivity : Activity() {
@@ -34,10 +36,9 @@ class MainActivity : Activity() {
                     pluginArtifact = artifact,
                     pluginPackageName = "com.example.testplugin"
                 )
-                val entryPointClass = context.loadPluginClass(
+                val plugin = context.loadPluginClass(
                     "com.example.testplugin.PluginEntryPoint"
-                )
-                val entryPoint = entryPointClass.getDeclaredConstructor().newInstance()
+                ).getDeclaredConstructor().newInstance() as SandboxPlugin
 
                 runOnUiThread {
                     pluginContext = context
@@ -45,7 +46,7 @@ class MainActivity : Activity() {
                         hostActivity = this,
                         pluginContext = context
                     ) {
-                        ReflectivePluginComponent(entryPoint)
+                        SandboxPluginComponent(plugin)
                     }
                     lifecycleDelegate = delegate
                     delegate.onCreate(savedInstanceState)
@@ -75,7 +76,7 @@ class MainActivity : Activity() {
             } catch (t: Throwable) {
                 runOnUiThread {
                     setContentView(TextView(this).apply {
-                        text = "Plugin initialization failed: ${t.message}"
+                        text = "Plugin initialization failed: ${t.stackTraceToString()}"
                     })
                 }
             }
@@ -147,69 +148,9 @@ class MainActivity : Activity() {
     }
 }
 
-/**
- * Small compatibility adapter for the test plugin. It keeps the plugin
- * independent of the host implementation while exposing the lifecycle contract
- * through ordinary reflection on known, optional method names.
- */
-private class ReflectivePluginComponent(
-    private val target: Any
+private class SandboxPluginComponent(
+    private val plugin: SandboxPlugin
 ) : PluginUiComponent {
-    override fun onCreate(state: Bundle?) {
-        invokeOptional("onCreate", state)
-    }
-
-    override fun onStart() {
-        invokeOptional("onStart")
-    }
-
-    override fun onResume() {
-        invokeOptional("onResume")
-    }
-
-    override fun onPause() {
-        invokeOptional("onPause")
-    }
-
-    override fun onStop() {
-        invokeOptional("onStop")
-    }
-
-    override fun onDestroy() {
-        invokeOptional("onDestroy")
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        invokeOptional("onSaveInstanceState", outState)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        invokeOptional("onRestoreInstanceState", savedInstanceState)
-    }
-
-    override fun createView(hostActivity: Activity, pluginContext: PluginContext): View? {
-        return try {
-            val method = target.javaClass.getMethod(
-                "createView",
-                Activity::class.java,
-                android.content.Context::class.java
-            )
-            method.invoke(target, hostActivity, pluginContext) as? View
-        } catch (e: Throwable) {
-            android.widget.TextView(hostActivity).apply {
-                text = "UI Reflection/Inflation Error:\n\n${e.stackTraceToString()}"
-                setTextColor(android.graphics.Color.RED)
-                setBackgroundColor(android.graphics.Color.BLACK)
-                setPadding(48, 48, 48, 48)
-                textSize = 14f
-            }
-        }
-    }
-
-    private fun invokeOptional(name: String, vararg args: Any?): Any? {
-        val method = target.javaClass.methods.firstOrNull {
-            it.name == name && it.parameterTypes.size == args.size
-        } ?: return null
-        return runCatching { method.invoke(target, *args) }.getOrNull()
-    }
+    override fun createView(hostActivity: Activity, pluginContext: Context): View? =
+        plugin.createView(hostActivity, pluginContext)
 }

@@ -32,5 +32,6 @@ android {
 }
 
 dependencies {
+    compileOnly(project(":sandbox-core"))
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
 }

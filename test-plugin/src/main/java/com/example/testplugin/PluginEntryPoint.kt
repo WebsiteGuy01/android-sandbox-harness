@@ -6,16 +6,21 @@ import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import com.example.sandbox.core.SandboxPlugin
 
 /** Graphical entry point for verifying XML inflation and routed plugin intents. */
-class PluginEntryPoint {
-    fun pluginName(): String = "sandbox-test-plugin"
+class PluginEntryPoint : SandboxPlugin {
+    override fun getPluginName(): String = "sandbox-test-plugin"
 
-    fun protocolVersion(): Int = 1
+    override fun getProtocolVersion(): Int = 1
+
+    fun pluginName(): String = getPluginName()
+
+    fun protocolVersion(): Int = getProtocolVersion()
 
     fun selfCheck(): Boolean = true
 
-    fun createView(hostActivity: Activity, pluginContext: Context): View? {
+    override fun createView(hostActivity: Activity, pluginContext: Context): View? {
         val inflater = LayoutInflater.from(pluginContext)
         val view = inflater.inflate(R.layout.plugin_main, null)
 

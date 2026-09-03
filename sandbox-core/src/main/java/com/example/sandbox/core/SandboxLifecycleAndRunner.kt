@@ -1,6 +1,7 @@
-package com.example.host.sandbox
+package com.example.sandbox.core
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import java.io.File
@@ -25,7 +26,7 @@ interface PluginUiComponent {
     fun onRestoreInstanceState(savedInstanceState: Bundle) {}
 
     /** Optional view supplied by the plugin; null is a valid result. */
-    fun createView(hostActivity: Activity, pluginContext: PluginContext): View? = null
+    fun createView(hostActivity: Activity, pluginContext: Context): View? = null
 }
 
 /**

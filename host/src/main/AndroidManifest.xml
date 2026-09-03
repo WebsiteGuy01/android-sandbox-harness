@@ -12,7 +12,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".sandbox.ProxyActivity"
+            android:name="com.example.sandbox.core.ProxyActivity"
             android:exported="false" />
     </application>
 </manifest>

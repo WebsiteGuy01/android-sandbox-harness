@@ -67,8 +67,8 @@ jobs:
           cp test-plugin/build/outputs/apk/debug/test-plugin-debug.apk \
              host/src/main/assets/test_plugin.apk
 
-      - name: Build host APK
-        run: ./gradlew --no-daemon :host:assembleDebug
+      - name: Build sandbox-core and host APK
+        run: ./gradlew --no-daemon :sandbox-core:assembleDebug :host:assembleDebug
 
       - name: Prepare downloadable app-debug.apk
         run: cp host/build/outputs/apk/debug/host-debug.apk host/build/outputs/apk/debug/app-debug.apk

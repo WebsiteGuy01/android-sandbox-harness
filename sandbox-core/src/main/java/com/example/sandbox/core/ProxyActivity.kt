@@ -1,6 +1,7 @@
-package com.example.host.sandbox
+package com.example.sandbox.core
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -118,7 +119,7 @@ class ProxyActivity : Activity() {
             invoke("onRestoreInstanceState", savedInstanceState)
         }
 
-        override fun createView(hostActivity: Activity, pluginContext: PluginContext): View? {
+        override fun createView(hostActivity: Activity, pluginContext: Context): View? {
             val method = target.javaClass.getMethod(
                 "createView",
                 Activity::class.java,
