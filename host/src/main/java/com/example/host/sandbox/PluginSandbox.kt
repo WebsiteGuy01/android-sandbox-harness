@@ -96,12 +96,39 @@ class PluginContext(
     }
 
     override fun getSystemService(name: String): Any? {
+        // LayoutInflater must be bound to this context so XML uses plugin resources.
         if (Context.LAYOUT_INFLATER_SERVICE == name) {
             val baseInflater = android.view.LayoutInflater.from(baseContext)
             return baseInflater.cloneInContext(this)
         }
+
+        // Foundation for future WindowMetrics adaptation. Keep the lookup
+        // defensive because API 30+ services may be absent on an API 29 host.
+        if (Context.WINDOW_SERVICE == name) {
+            return try {
+                baseContext.getSystemService(name)
+            } catch (e: Throwable) {
+                android.util.Log.w(
+                    "SandboxEngine",
+                    "Intercepted unsupported WindowManager request",
+                    e
+                )
+                null
+            }
+        }
+
         // Deny-by-default prevents accidental access to sensitive host services.
-        return if (name in allowedServices) super.getSystemService(name) else null
+        if (name !in allowedServices) return null
+        return try {
+            super.getSystemService(name)
+        } catch (e: Throwable) {
+            android.util.Log.w(
+                "SandboxEngine",
+                "Intercepted unsupported service request: $name",
+                e
+            )
+            null
+        }
     }
 
     override fun getAssets(): AssetManager = pluginResources.assets
