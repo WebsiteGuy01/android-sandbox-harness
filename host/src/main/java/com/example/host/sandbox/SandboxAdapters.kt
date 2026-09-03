@@ -22,17 +22,19 @@ object WindowMetricsAdapter {
             ?: return fromDisplayMetrics(context)
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            fromApi30(wm)
+            fromApi30(context, wm)
         } else {
             fromDisplayMetrics(context)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun fromApi30(windowManager: WindowManager): SandboxWindowMetrics {
+    private fun fromApi30(context: Context, windowManager: WindowManager): SandboxWindowMetrics {
         val metrics = windowManager.currentWindowMetrics
-        val density = windowManager.defaultDisplay.density
-        return SandboxWindowMetrics(Rect(metrics.bounds), density)
+        return SandboxWindowMetrics(
+            Rect(metrics.bounds),
+            context.resources.displayMetrics.density
+        )
     }
 
     @Suppress("DEPRECATION")

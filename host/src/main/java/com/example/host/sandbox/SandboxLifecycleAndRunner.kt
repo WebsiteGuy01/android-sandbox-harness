@@ -73,9 +73,9 @@ class SandboxActivityLifecycle(
 
     fun onRestoreInstanceState(savedInstanceState: Bundle?) {
         checkAlive()
-        val isolated = savedInstanceState?.getBundle(STATE_KEY)
-            ?: savedInstanceState
-        component?.onRestoreInstanceState(StateBundleSanitizer.copyOf(isolated))
+        val isolated = savedInstanceState?.getBundle(STATE_KEY) ?: savedInstanceState
+        val sanitized = StateBundleSanitizer.copyOf(isolated) ?: Bundle()
+        component?.onRestoreInstanceState(sanitized)
     }
 
     fun createView(): View? {
@@ -258,6 +258,8 @@ class SandboxTestRunner(
     }
 
     private fun closeQuietly(fd: Int) {
-        if (fd >= 0) runCatching { android.system.Os.close(fd) }
+        if (fd >= 0) kotlin.runCatching {
+            android.os.ParcelFileDescriptor.adoptFd(fd).close()
+        }
     }
 }
