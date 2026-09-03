@@ -13,6 +13,8 @@ permissions:
 env:
   ANDROID_NDK_VERSION: "26.3.11579264"
   CMAKE_VERSION: "3.22.1"
+  PRODUCTION_APK_URL: "https://f-droid.org/repo/com.darkempire78.opencalculator_53.apk"
+  PRODUCTION_APK_SHA256: "2642613868a8a80f0ce963a4863bc153e7281b97b3bbdf36ca92a99dded7134a"
 
 jobs:
   build:
@@ -42,6 +44,13 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;${ANDROID_NDK_VERSION}" \
             "cmake;${CMAKE_VERSION}"
+
+      - name: Stage pinned production APK
+        run: |
+          mkdir -p host/src/main/assets
+          curl --fail --location --retry 3 --output /tmp/production-guest.apk "$PRODUCTION_APK_URL"
+          echo "$PRODUCTION_APK_SHA256  /tmp/production-guest.apk" | sha256sum --check --strict
+          cp /tmp/production-guest.apk host/src/main/assets/production-guest.apk
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew

@@ -3,9 +3,12 @@ package com.example.host
 import android.app.Activity
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.host.sandbox.PluginContext
 import com.example.host.sandbox.PluginUiComponent
+import com.example.host.sandbox.ProductionGuestDiagnostic
+import com.example.host.sandbox.SandboxTestRunner
 import com.example.host.sandbox.SandboxActivityLifecycle
 import java.io.File
 
@@ -19,6 +22,12 @@ class MainActivity : Activity() {
 
         Thread {
             try {
+                val productionGuest = SandboxTestRunner(
+                    hostContext = applicationContext,
+                    assetName = "test_plugin.apk",
+                    pluginPackageName = "com.example.testplugin",
+                    entryPointClassName = "com.example.testplugin.PluginEntryPoint"
+                ).inspectProductionGuest()
                 val artifact = stagePluginAsset()
                 val context = PluginContext(
                     host = applicationContext,
@@ -40,9 +49,28 @@ class MainActivity : Activity() {
                     }
                     lifecycleDelegate = delegate
                     delegate.onCreate(savedInstanceState)
-                    setContentView(delegate.createView() ?: TextView(this).apply {
+                    val pluginView = delegate.createView() ?: TextView(this).apply {
                         text = "Plugin did not provide a UI view"
-                    })
+                    }
+                    val container = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                    }
+                    container.addView(
+                        productionDiagnosticView(productionGuest),
+                        LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        )
+                    )
+                    container.addView(
+                        pluginView,
+                        LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            0,
+                            1f
+                        )
+                    )
+                    setContentView(container)
                 }
             } catch (t: Throwable) {
                 runOnUiThread {
@@ -91,6 +119,21 @@ class MainActivity : Activity() {
         pluginContext = null
         super.onDestroy()
     }
+
+    private fun productionDiagnosticView(report: ProductionGuestDiagnostic): TextView =
+        TextView(this).apply {
+            text = buildString {
+                append("Production APK manifest inspection\n")
+                append("Package: ${report.packageName ?: "unavailable"}\n")
+                append("Version: ${report.versionName ?: "unknown"} (${report.versionCode ?: "?"})\n")
+                append("Primary activity: ${report.primaryActivity ?: "none"}\n")
+                append("Declared activities: ${report.activityCount}")
+                report.error?.let { append("\nInspection error: $it") }
+            }
+            setPadding(24, 24, 24, 24)
+            setTextColor(android.graphics.Color.WHITE)
+            setBackgroundColor(android.graphics.Color.DKGRAY)
+        }
 
     private fun stagePluginAsset(): File {
         val stagedRoot = File(filesDir, "staged").canonicalFile

@@ -138,6 +138,16 @@ object StateBundleSanitizer {
     }
 }
 
+data class ProductionGuestDiagnostic(
+    val artifactStaged: Boolean,
+    val packageName: String?,
+    val versionName: String?,
+    val versionCode: Long?,
+    val primaryActivity: String?,
+    val activityCount: Int,
+    val error: String? = null
+)
+
 data class SandboxDiagnosticReport(
     val artifactStaged: Boolean,
     val pluginClassLoaded: Boolean,
@@ -162,6 +172,43 @@ class SandboxTestRunner(
     private val pluginPackageName: String,
     private val entryPointClassName: String
 ) {
+    /**
+     * Parses the staged APK manifest only. This method never loads guest
+     * classes, creates guest Activities, or launches the production APK.
+     */
+    fun inspectProductionGuest(): ProductionGuestDiagnostic {
+        var staged = false
+        return try {
+            val apk = stageNamedAsset("production-guest.apk")
+            staged = true
+            val packageInfo = hostContext.packageManager.getPackageArchiveInfo(
+                apk.absolutePath,
+                android.content.pm.PackageManager.GET_ACTIVITIES
+            ) ?: error("PackageManager could not parse the production APK manifest")
+            val activities = packageInfo.activities.orEmpty()
+            val primary = activities.firstOrNull { it.exported }?.name
+                ?: activities.firstOrNull()?.name
+            ProductionGuestDiagnostic(
+                artifactStaged = staged,
+                packageName = packageInfo.packageName,
+                versionName = packageInfo.versionName,
+                versionCode = packageInfo.longVersionCode,
+                primaryActivity = primary,
+                activityCount = activities.size
+            )
+        } catch (t: Throwable) {
+            ProductionGuestDiagnostic(
+                artifactStaged = staged,
+                packageName = null,
+                versionName = null,
+                versionCode = null,
+                primaryActivity = null,
+                activityCount = 0,
+                error = "${t::class.java.simpleName}: ${t.message}"
+            )
+        }
+    }
+
     fun run(): SandboxDiagnosticReport {
         var pluginContext: PluginContext? = null
         var validFd = -1
@@ -246,12 +293,17 @@ class SandboxTestRunner(
         }
     }
 
-    private fun stageAsset(): File {
-        val destination = File(hostContext.filesDir, "staged/$assetName").canonicalFile
+    private fun stageAsset(): File = stageNamedAsset(assetName)
+
+    private fun stageNamedAsset(name: String): File {
+        require(name.matches(Regex("[A-Za-z0-9._-]+"))) {
+            "Asset name must be a simple file name"
+        }
+        val destination = File(hostContext.filesDir, "staged/$name").canonicalFile
         val stagedRoot = File(hostContext.filesDir, "staged").canonicalFile
         require(destination.parentFile == stagedRoot) { "assetName must be a simple file name" }
         stagedRoot.mkdirs()
-        hostContext.assets.open(assetName).use { input ->
+        hostContext.assets.open(name).use { input ->
             destination.outputStream().use { output -> input.copyTo(output) }
         }
         return destination
