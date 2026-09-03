@@ -86,30 +86,44 @@ object PluginVerifier {
         return fingerprint.replace(":", "").replace(" ", "").uppercase()
     }
 
+    /**
+     * Extracts the primary APK certificate fingerprint without delimiters.
+     * Returns <none> when Android cannot expose a certificate for the archive.
+     */
+    fun extractApkFingerprint(context: Context, apkPath: String): String {
+        val packageInfo = archiveInfo(context, apkPath)
+            ?: throw IllegalStateException("Failed to parse APK archive at $apkPath")
+        val signature = signatures(packageInfo).firstOrNull()
+            ?: return "<none>"
+        val digest = MessageDigest.getInstance(SHA256).digest(signature.toByteArray())
+        return digest.joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+    }
+
     internal fun sha256Fingerprint(signature: Signature): String {
         val digest = MessageDigest.getInstance(SHA256).digest(signature.toByteArray())
-        return digest.joinToString(":") { "%02X".format(it) }
+        return digest.joinToString(":") { "%02X".format(it.toInt() and 0xFF) }
     }
 
     private fun archiveInfo(context: Context, apkPath: String): PackageInfo? {
-        val flags = if (Build.VERSION.SDK_INT >= 28) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            @Suppress("DEPRECATION") PackageManager.GET_SIGNATURES
-        }
+        // Request both APIs so archive parsing can populate certificates on API 29.
+        val flags = PackageManager.GET_SIGNATURES or PackageManager.GET_SIGNING_CERTIFICATES
         return context.packageManager.getPackageArchiveInfo(apkPath, flags)
     }
 
     @Suppress("DEPRECATION")
     private fun signatures(packageInfo: PackageInfo): Array<Signature> {
         if (Build.VERSION.SDK_INT >= 28) {
-            val signingInfo = packageInfo.signingInfo ?: return emptyArray()
-            return if (signingInfo.hasMultipleSigners()) {
-                signingInfo.apkContentsSigners ?: emptyArray()
-            } else {
-                signingInfo.signingCertificateHistory ?: emptyArray()
+            val signingInfo = packageInfo.signingInfo
+            if (signingInfo != null) {
+                val current = if (signingInfo.hasMultipleSigners()) {
+                    signingInfo.apkContentsSigners
+                } else {
+                    signingInfo.signingCertificateHistory
+                }
+                if (!current.isNullOrEmpty()) return current
             }
         }
+        // Some API 29 archive parses expose only the legacy signatures field.
         return packageInfo.signatures ?: emptyArray()
     }
 }
