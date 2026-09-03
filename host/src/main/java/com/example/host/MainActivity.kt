@@ -145,7 +145,16 @@ private class ReflectivePluginComponent(
     }
 
     override fun createView(hostActivity: Activity, pluginContext: PluginContext): View? {
-        return invokeOptional("createView", hostActivity, pluginContext) as? View
+        val method = runCatching {
+            target.javaClass.getMethod(
+                "createView",
+                Activity::class.java,
+                android.content.Context::class.java
+            )
+        }.getOrNull() ?: return null
+        return runCatching {
+            method.invoke(target, hostActivity, pluginContext) as? View
+        }.getOrNull()
     }
 
     private fun invokeOptional(name: String, vararg args: Any?): Any? {
