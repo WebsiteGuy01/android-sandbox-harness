@@ -46,6 +46,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Regenerate Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.7
+
       - name: Compile test plugin
         run: ./gradlew --no-daemon :test-plugin:assembleDebug
 
