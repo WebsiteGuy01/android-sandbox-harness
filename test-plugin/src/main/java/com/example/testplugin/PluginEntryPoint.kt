@@ -2,10 +2,12 @@ package com.example.testplugin
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 
-/** Minimal graphical entry point for verifying plugin resource inflation. */
+/** Graphical entry point for verifying XML inflation and routed plugin intents. */
 class PluginEntryPoint {
     fun pluginName(): String = "sandbox-test-plugin"
 
@@ -13,8 +15,19 @@ class PluginEntryPoint {
 
     fun selfCheck(): Boolean = true
 
-    fun createView(hostActivity: Activity, pluginContext: Context): View {
-        // Inflate using PluginContext so R.layout.plugin_main resolves from the APK.
-        return LayoutInflater.from(pluginContext).inflate(R.layout.plugin_main, null)
+    fun createView(hostActivity: Activity, pluginContext: Context): View? {
+        val inflater = LayoutInflater.from(pluginContext)
+        val view = inflater.inflate(R.layout.plugin_main, null)
+
+        view.findViewById<Button>(R.id.launch_button)?.setOnClickListener {
+            val intent = Intent().apply {
+                setClassName(
+                    "com.example.testplugin",
+                    "com.example.testplugin.SecondaryPluginActivity"
+                )
+            }
+            pluginContext.startActivity(intent)
+        }
+        return view
     }
 }
