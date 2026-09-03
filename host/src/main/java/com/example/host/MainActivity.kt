@@ -144,8 +144,8 @@ private class ReflectivePluginComponent(
         invokeOptional("onRestoreInstanceState", savedInstanceState)
     }
 
-    override fun createView(hostActivity: Activity): View? {
-        return invokeOptional("createView", hostActivity) as? View
+    override fun createView(hostActivity: Activity, pluginContext: PluginContext): View? {
+        return invokeOptional("createView", hostActivity, pluginContext) as? View
     }
 
     private fun invokeOptional(name: String, vararg args: Any?): Any? {

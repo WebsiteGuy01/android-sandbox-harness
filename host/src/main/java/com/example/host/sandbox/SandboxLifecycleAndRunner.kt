@@ -25,7 +25,7 @@ interface PluginUiComponent {
     fun onRestoreInstanceState(savedInstanceState: Bundle) {}
 
     /** Optional view supplied by the plugin; null is a valid result. */
-    fun createView(hostActivity: Activity): View? = null
+    fun createView(hostActivity: Activity, pluginContext: PluginContext): View? = null
 }
 
 /**
@@ -80,7 +80,7 @@ class SandboxActivityLifecycle(
 
     fun createView(): View? {
         checkAlive()
-        return component?.createView(hostActivity)
+        return component?.createView(hostActivity, pluginContext)
     }
 
     fun onDestroy() {

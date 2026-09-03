@@ -43,6 +43,7 @@ class PluginContext(
 
     private val artifact: File = pluginArtifact.canonicalFile
     private val pluginClassLoader: ClassLoader
+    private val pluginResources: Resources by lazy { buildPluginResources() }
 
     init {
         require(artifact.isFile) { "Plugin artifact does not exist: $artifact" }
@@ -81,9 +82,25 @@ class PluginContext(
         return if (name in allowedServices) super.getSystemService(name) else null
     }
 
-    override fun getAssets(): AssetManager = super.getAssets()
+    override fun getAssets(): AssetManager = pluginResources.assets
 
-    override fun getResources(): Resources = super.getResources()
+    override fun getResources(): Resources = pluginResources
+
+    private fun buildPluginResources(): Resources {
+        val assetManager = AssetManager::class.java.getDeclaredConstructor().newInstance()
+        val addAssetPath = AssetManager::class.java.getMethod(
+            "addAssetPath",
+            String::class.java
+        )
+        val cookie = addAssetPath.invoke(assetManager, artifact.absolutePath) as? Int ?: 0
+        check(cookie != 0) { "Unable to add plugin asset path" }
+        val hostResources = baseContext.resources
+        return Resources(
+            assetManager,
+            hostResources.displayMetrics,
+            hostResources.configuration
+        )
+    }
 
     fun loadPluginClass(binaryName: String): Class<*> {
         require(binaryName.matches(Regex("[A-Za-z_$][A-Za-z0-9_$.]*"))) {

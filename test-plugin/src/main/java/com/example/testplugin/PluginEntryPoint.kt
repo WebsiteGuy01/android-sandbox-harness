@@ -1,13 +1,11 @@
 package com.example.testplugin
 
 import android.app.Activity
-import android.graphics.Color
+import android.content.Context
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.TextView
 
-/**
- * Minimal graphical entry point for verifying host-owned Activity delegation.
- */
+/** Minimal graphical entry point for verifying plugin resource inflation. */
 class PluginEntryPoint {
     fun pluginName(): String = "sandbox-test-plugin"
 
@@ -15,11 +13,8 @@ class PluginEntryPoint {
 
     fun selfCheck(): Boolean = true
 
-    fun createView(hostActivity: Activity): View = TextView(hostActivity).apply {
-        text = "Plugin UI loaded\n\n${pluginName()}\nProtocol ${protocolVersion()}"
-        textSize = 20f
-        setTextColor(Color.WHITE)
-        setBackgroundColor(Color.rgb(32, 42, 56))
-        setPadding(48, 48, 48, 48)
+    fun createView(hostActivity: Activity, pluginContext: Context): View {
+        // Inflate using PluginContext so R.layout.plugin_main resolves from the APK.
+        return LayoutInflater.from(pluginContext).inflate(R.layout.plugin_main, null)
     }
 }
