@@ -16,7 +16,7 @@ class PluginEntryPoint {
     fun selfCheck(): Boolean = true
 
     fun createView(hostActivity: Activity): View = TextView(hostActivity).apply {
-        text = "Plugin UI loaded\n\n$pluginName()\nProtocol $protocolVersion"
+        text = "Plugin UI loaded\n\n${pluginName()}\nProtocol ${protocolVersion()}"
         textSize = 20f
         setTextColor(Color.WHITE)
         setBackgroundColor(Color.rgb(32, 42, 56))
