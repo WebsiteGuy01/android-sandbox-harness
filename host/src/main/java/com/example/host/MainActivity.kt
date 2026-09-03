@@ -145,16 +145,22 @@ private class ReflectivePluginComponent(
     }
 
     override fun createView(hostActivity: Activity, pluginContext: PluginContext): View? {
-        val method = runCatching {
-            target.javaClass.getMethod(
+        return try {
+            val method = target.javaClass.getMethod(
                 "createView",
                 Activity::class.java,
                 android.content.Context::class.java
             )
-        }.getOrNull() ?: return null
-        return runCatching {
             method.invoke(target, hostActivity, pluginContext) as? View
-        }.getOrNull()
+        } catch (e: Throwable) {
+            android.widget.TextView(hostActivity).apply {
+                text = "UI Reflection/Inflation Error:\n\n${e.stackTraceToString()}"
+                setTextColor(android.graphics.Color.RED)
+                setBackgroundColor(android.graphics.Color.BLACK)
+                setPadding(48, 48, 48, 48)
+                textSize = 14f
+            }
+        }
     }
 
     private fun invokeOptional(name: String, vararg args: Any?): Any? {
